@@ -55,3 +55,50 @@ tasks.test {
     useJUnitPlatform()
     finalizedBy(tasks.jacocoTestReport)
 }
+
+val coverageExclusions = listOf(
+    "io/github/khram0v/trainerworkload/TrainerWorkloadServiceApplication.class",
+    "io/github/khram0v/trainerworkload/model/**",
+    "io/github/khram0v/trainerworkload/repository/**",
+    "io/github/khram0v/trainerworkload/exception/**",
+    "io/github/khram0v/trainerworkload/dto/**",
+    "io/github/khram0v/trainerworkload/config/**",
+    "io/github/khram0v/trainerworkload/filter/**"
+)
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+    classDirectories.setFrom(
+        files(classDirectories.files.map {
+            fileTree(it) {
+                exclude(coverageExclusions)
+            }
+        })
+    )
+}
+
+tasks.jacocoTestCoverageVerification {
+    dependsOn(tasks.jacocoTestReport)
+    violationRules {
+        rule {
+            limit {
+                minimum = "0.80".toBigDecimal()
+            }
+        }
+    }
+    classDirectories.setFrom(
+        files(classDirectories.files.map {
+            fileTree(it) {
+                exclude(coverageExclusions)
+            }
+        })
+    )
+}
+
+tasks.check {
+    dependsOn(tasks.jacocoTestCoverageVerification)
+}
