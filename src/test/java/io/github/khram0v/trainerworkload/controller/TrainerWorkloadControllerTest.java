@@ -7,6 +7,7 @@ import io.github.khram0v.trainerworkload.dto.response.MonthlyWorkloadResponse;
 import io.github.khram0v.trainerworkload.dto.response.TrainerWorkloadSummaryResponse;
 import io.github.khram0v.trainerworkload.dto.response.YearSummaryResponse;
 import io.github.khram0v.trainerworkload.exception.NotFoundException;
+import io.github.khram0v.trainerworkload.security.ServiceAuthenticationFilter;
 import io.github.khram0v.trainerworkload.service.TrainerWorkloadService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +41,7 @@ class TrainerWorkloadControllerTest {
     private final ObjectMapper objectMapper = JsonMapper.builder().build();
 
     @MockitoBean private TrainerWorkloadService trainerWorkloadService;
+    @MockitoBean private ServiceAuthenticationFilter serviceAuthenticationFilter;
 
     // ~~~~~ applyWorkload ~~~~~
 

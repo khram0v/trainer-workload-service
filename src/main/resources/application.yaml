@@ -22,6 +22,10 @@ spring:
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
 
+security:
+  service:
+    secret: ${SERVICE_JWT_SERVICE:local-only-dev-shared-secret-key-not-for-prod-use-1234567890}
+
 management:
   endpoints:
     web:

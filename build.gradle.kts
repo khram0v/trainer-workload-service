@@ -19,18 +19,24 @@ repositories {
     mavenCentral()
 }
 
+val jjwtVersion = "0.13.0"
+
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-liquibase")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("io.jsonwebtoken:jjwt-api:${jjwtVersion}")
 
     compileOnly("org.projectlombok:lombok")
 
     developmentOnly("org.springframework.boot:spring-boot-docker-compose")
 
     runtimeOnly("org.postgresql:postgresql")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:${jjwtVersion}")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:${jjwtVersion}")
 
     annotationProcessor("org.projectlombok:lombok")
 
@@ -39,6 +45,7 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-liquibase-test")
     testImplementation("org.springframework.boot:spring-boot-starter-validation-test")
     testImplementation("org.springframework.boot:spring-boot-starter-actuator-test")
+    testImplementation("org.springframework.boot:spring-boot-starter-security-test")
 
     testCompileOnly("org.projectlombok:lombok")
 
@@ -63,7 +70,8 @@ val coverageExclusions = listOf(
     "io/github/khram0v/trainerworkload/exception/**",
     "io/github/khram0v/trainerworkload/dto/**",
     "io/github/khram0v/trainerworkload/config/**",
-    "io/github/khram0v/trainerworkload/filter/**"
+    "io/github/khram0v/trainerworkload/filter/**",
+    "io/github/khram0v/trainerworkload/security/config/**"
 )
 
 tasks.jacocoTestReport {

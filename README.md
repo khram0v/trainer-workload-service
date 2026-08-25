@@ -44,6 +44,13 @@ TrainerWorkload (username, firstName, lastName, active)
 `actionType` is `ADD` when a training session is scheduled, `DELETE` when it is canceled. The monthly total is adjusted
 accordingly and never drops below zero. Trainer name/active status are refreshed on every event.
 
+## Security
+
+All endpoints (except `/actuator/health/**`) require a `Authorization: Bearer <token>` header carrying a JWT signed with
+the shared secret configured via `SERVICE_JWT_SECRET`, containing a `type=service` claim. This service never issues
+tokens itself — it only validates ones issued by trusted callers (e.g. `gym-crm`). Requests without a valid service
+token get `401 Unauthorized`.
+
 ## Getting Started
 
 ```bash
