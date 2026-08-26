@@ -51,6 +51,17 @@ the shared secret configured via `SERVICE_JWT_SECRET`, containing a `type=servic
 tokens itself — it only validates ones issued by trusted callers (e.g. `gym-crm`). Requests without a valid service
 token get `401 Unauthorized`.
 
+## Observability
+
+Requests are traced using a shared `transactionId`:
+
+* **Request logging:** `RequestLoggingInterceptor` logs request start/completion.
+* **Operation logging:** `applyWorkloadEvent` logs changes at `INFO`; read operations log at `DEBUG`.
+* **Transaction ID:** `TransactionIdFilter` reuses the inbound `X-Transaction-Id` or generates a new one, then includes
+  it in the response and error responses.
+* **Cross-service tracing:** propagated IDs allow training operations in `gym-crm` and workload sync calls to be
+  correlated.
+
 ## Getting Started
 
 ```bash

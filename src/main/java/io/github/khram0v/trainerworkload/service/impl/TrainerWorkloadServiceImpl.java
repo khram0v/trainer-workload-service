@@ -60,10 +60,13 @@ public class TrainerWorkloadServiceImpl implements TrainerWorkloadService {
     public TrainerWorkloadSummaryResponse getSummary(String username) {
         TrainerWorkload trainerWorkload = trainerWorkloadRepository.findByUsernameWithYearsAndMonths(username)
                 .orElseThrow(() -> new NotFoundException("No workload data found for trainer: " + username));
+        log.debug("Retrieved workload summary for trainer '{}': {} year(s) on record",
+                username, trainerWorkload.getYears().size());
         return trainerWorkloadMapper.toSummaryResponse(trainerWorkload);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public MonthlyWorkloadResponse getMonthlyDuration(String username, int year, int month) {
         TrainerWorkload trainerWorkload = trainerWorkloadRepository.findByUsernameWithYearsAndMonths(username)
                 .orElseThrow(() -> new NotFoundException("No workload data found for trainer: " + username));
@@ -76,6 +79,7 @@ public class TrainerWorkloadServiceImpl implements TrainerWorkloadService {
                 .findFirst()
                 .orElse(0);
 
+        log.debug("Retrieved monthly workload for trainer '{}' {}-{}: {} min", username, year, month, duration);
         return new MonthlyWorkloadResponse(username, year, month, duration);
     }
 
