@@ -10,13 +10,14 @@ and exposes it for querying.
 - Spring Data JPA + PostgreSQL
 - Liquibase
 - Eureka client + Bearer-token auth
+- Spring Cloud Netflix Eureka Client (service discovery)
 
 ## Data model
 
 ```
 TrainerWorkload (username, firstName, lastName, active)
-    WorkloadYear (year)
-    WorkloadMonth (month, trainingSummaryDuration)
+├── WorkloadYear (year)
+└── WorkloadMonth (month, trainingSummaryDuration)
 ```
 
 ## API

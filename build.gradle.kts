@@ -20,6 +20,7 @@ repositories {
 }
 
 val jjwtVersion = "0.13.0"
+val springCloudVersion = "2025.1.2"
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
@@ -29,6 +30,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("io.jsonwebtoken:jjwt-api:${jjwtVersion}")
+    implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
 
     compileOnly("org.projectlombok:lombok")
 
@@ -52,6 +54,12 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
     testAnnotationProcessor("org.projectlombok:lombok")
+}
+
+dependencyManagement {
+    imports {
+        mavenBom("org.springframework.cloud:spring-cloud-dependencies:$springCloudVersion")
+    }
 }
 
 tasks.withType<JavaCompile> {
