@@ -14,7 +14,6 @@ import io.github.khram0v.trainerworkload.service.TrainerWorkloadService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Slf4j
@@ -25,13 +24,15 @@ public class TrainerWorkloadServiceImpl implements TrainerWorkloadService {
     private final TrainerWorkloadMapper trainerWorkloadMapper;
 
     @Override
-    @Transactional
     public void applyWorkloadEvent(WorkloadEventRequest request) {
-        TrainerWorkload trainerWorkload = trainerWorkloadRepository
-                .findByUsernameWithYearsAndMonths(request.trainerUsername())
-                .orElseGet(() -> new TrainerWorkload(
-                        request.trainerUsername(), request.trainerFirstName(),
-                        request.trainerLastName(), request.active()));
+        TrainerWorkload trainerWorkload = trainerWorkloadRepository.findByUsername(request.trainerUsername())
+                .orElseGet(() -> {
+                    log.debug("No existing workload record for trainer '{}', creating a new one",
+                            request.trainerUsername());
+                    return new TrainerWorkload(
+                            request.trainerUsername(), request.trainerFirstName(),
+                            request.trainerLastName(), request.active());
+                });
 
         trainerWorkload.setFirstName(request.trainerFirstName());
         trainerWorkload.setLastName(request.trainerLastName());
@@ -56,9 +57,8 @@ public class TrainerWorkloadServiceImpl implements TrainerWorkloadService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public TrainerWorkloadSummaryResponse getSummary(String username) {
-        TrainerWorkload trainerWorkload = trainerWorkloadRepository.findByUsernameWithYearsAndMonths(username)
+        TrainerWorkload trainerWorkload = trainerWorkloadRepository.findByUsername(username)
                 .orElseThrow(() -> new NotFoundException("No workload data found for trainer: " + username));
         log.debug("Retrieved workload summary for trainer '{}': {} year(s) on record",
                 username, trainerWorkload.getYears().size());
@@ -66,9 +66,8 @@ public class TrainerWorkloadServiceImpl implements TrainerWorkloadService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public MonthlyWorkloadResponse getMonthlyDuration(String username, int year, int month) {
-        TrainerWorkload trainerWorkload = trainerWorkloadRepository.findByUsernameWithYearsAndMonths(username)
+        TrainerWorkload trainerWorkload = trainerWorkloadRepository.findByUsername(username)
                 .orElseThrow(() -> new NotFoundException("No workload data found for trainer: " + username));
 
         int duration = trainerWorkload.getYears().stream()
@@ -88,7 +87,9 @@ public class TrainerWorkloadServiceImpl implements TrainerWorkloadService {
                 .filter(y -> y.getYear() == year)
                 .findFirst()
                 .orElseGet(() -> {
-                    WorkloadYear newYear = new WorkloadYear(trainerWorkload, year);
+                    log.debug("No record for year {} for trainer '{}', creating a new one",
+                            year, trainerWorkload.getUsername());
+                    WorkloadYear newYear = new WorkloadYear(year);
                     trainerWorkload.getYears().add(newYear);
                     return newYear;
                 });
@@ -99,7 +100,9 @@ public class TrainerWorkloadServiceImpl implements TrainerWorkloadService {
                 .filter(m -> m.getMonth() == month)
                 .findFirst()
                 .orElseGet(() -> {
-                    WorkloadMonth newMonth = new WorkloadMonth(workloadYear, month);
+                    log.debug("No record for month {} in year {}, creating a new one",
+                            month, workloadYear.getYear());
+                    WorkloadMonth newMonth = new WorkloadMonth(month);
                     workloadYear.getMonths().add(newMonth);
                     return newMonth;
                 });
