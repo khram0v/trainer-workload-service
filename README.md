@@ -7,18 +7,27 @@ maintains a running monthly summary per trainer, and exposes it for querying ove
 ## Tech Stack
 
 - Java 25 / Spring Boot 4
-- Spring Data JPA + PostgreSQL
-- Liquibase
+- Spring Data MongoDB
 - Spring JMS + ActiveMQ (async event consumption from gym-crm)
 - Bearer-token auth for the query endpoints
 
 ## Data model
 
+Each trainer is a single document in the `trainer_workloads` collection — years and months are embedded, not separate
+collections, since they're always read and written together as one aggregate:
+
 ```
-TrainerWorkload (username, firstName, lastName, active)
-├── WorkloadYear (year)
-└── WorkloadMonth (month, trainingSummaryDuration)
+TrainerWorkload (document, _id = username)
+├── firstName, lastName, active
+└── years: List<WorkloadYear>
+├── year
+└── months: List<WorkloadMonth>
+├── month
+└── trainingSummaryDuration
 ```
+
+A compound index on `firstName`+`lastName` (`TrainerWorkloadRepository#findByFirstNameAndLastName`) supports name-based
+lookups.
 
 ## Messaging
 
@@ -77,7 +86,8 @@ tokens itself - it only validates ones issued by trusted callers.
 Requests and events are traced using a shared `transactionId`:
 
 * **Request logging:** `RequestLoggingInterceptor` logs request start/completion (REST endpoints only).
-* **Operation logging:** `applyWorkloadEvent` logs changes at `INFO`; read operations log at `DEBUG`.
+* **Operation logging:** `TrainerWorkloadServiceImpl` logs each business step - creation of a new trainer/year/month
+  record at `DEBUG`, the resulting duration update at `INFO`, and reads at `DEBUG`.
 * **Transaction ID (REST):** `TransactionIdFilter` reuses the inbound `X-Transaction-Id` or generates a new one, then
   includes it in the response and error responses.
 * **Transaction ID (messaging):** `TrainerWorkloadEventListener` reads the `transactionId` JMS property (if present)
@@ -91,8 +101,8 @@ Requests and events are traced using a shared `transactionId`:
 ./gradlew bootRun
 ```
 
-Requires PostgreSQL and ActiveMQ - `docker compose up -d` (via `compose.yaml`) starts Postgres on port `5433` and
-ActiveMQ on `61616` (web console on `8161`).
+Requires MongoDB and ActiveMQ - `docker compose up -d` (via `compose.yaml`) starts MongoDB on port `27017` and ActiveMQ
+on `61616` (web console on `8161`).
 
 ## Testing
 
