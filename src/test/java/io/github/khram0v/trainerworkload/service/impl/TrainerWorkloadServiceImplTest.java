@@ -42,7 +42,7 @@ class TrainerWorkloadServiceImplTest {
 
     @Test
     void applyWorkloadEvent_whenNewTrainer_createsTrainerYearAndMonth_withAddedDuration() {
-        when(trainerWorkloadRepository.findByUsernameWithYearsAndMonths("Jane.Smith"))
+        when(trainerWorkloadRepository.findByUsername("Jane.Smith"))
                 .thenReturn(Optional.empty());
         when(trainerWorkloadRepository.save(any(TrainerWorkload.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
@@ -62,10 +62,10 @@ class TrainerWorkloadServiceImplTest {
         assertThat(saved.getLastName()).isEqualTo("Smith");
         assertThat(saved.isActive()).isTrue();
         assertThat(saved.getYears()).hasSize(1);
-        WorkloadYear year = saved.getYears().iterator().next();
+        WorkloadYear year = saved.getYears().getFirst();
         assertThat(year.getYear()).isEqualTo(2024);
         assertThat(year.getMonths()).hasSize(1);
-        WorkloadMonth month = year.getMonths().iterator().next();
+        WorkloadMonth month = year.getMonths().getFirst();
         assertThat(month.getMonth()).isEqualTo(6);
         assertThat(month.getTrainingSummaryDuration()).isEqualTo(60);
     }
@@ -73,13 +73,13 @@ class TrainerWorkloadServiceImplTest {
     @Test
     void applyWorkloadEvent_whenExistingTrainerSameMonth_accumulatesAddedDuration() {
         TrainerWorkload existing = new TrainerWorkload("Jane.Smith", "Jane", "Smith", true);
-        WorkloadYear year = new WorkloadYear(existing, 2024);
-        WorkloadMonth month = new WorkloadMonth(year, 6);
+        WorkloadYear year = new WorkloadYear(2024);
+        WorkloadMonth month = new WorkloadMonth(6);
         month.setTrainingSummaryDuration(60);
         year.getMonths().add(month);
         existing.getYears().add(year);
 
-        when(trainerWorkloadRepository.findByUsernameWithYearsAndMonths("Jane.Smith"))
+        when(trainerWorkloadRepository.findByUsername("Jane.Smith"))
                 .thenReturn(Optional.of(existing));
         when(trainerWorkloadRepository.save(any(TrainerWorkload.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
@@ -97,13 +97,13 @@ class TrainerWorkloadServiceImplTest {
     @Test
     void applyWorkloadEvent_whenDeleteAction_subtractsDuration() {
         TrainerWorkload existing = new TrainerWorkload("Jane.Smith", "Jane", "Smith", true);
-        WorkloadYear year = new WorkloadYear(existing, 2024);
-        WorkloadMonth month = new WorkloadMonth(year, 6);
+        WorkloadYear year = new WorkloadYear(2024);
+        WorkloadMonth month = new WorkloadMonth(6);
         month.setTrainingSummaryDuration(90);
         year.getMonths().add(month);
         existing.getYears().add(year);
 
-        when(trainerWorkloadRepository.findByUsernameWithYearsAndMonths("Jane.Smith"))
+        when(trainerWorkloadRepository.findByUsername("Jane.Smith"))
                 .thenReturn(Optional.of(existing));
         when(trainerWorkloadRepository.save(any(TrainerWorkload.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
@@ -120,13 +120,13 @@ class TrainerWorkloadServiceImplTest {
     @Test
     void applyWorkloadEvent_whenDeleteExceedsExistingDuration_clampsAtZero() {
         TrainerWorkload existing = new TrainerWorkload("Jane.Smith", "Jane", "Smith", true);
-        WorkloadYear year = new WorkloadYear(existing, 2024);
-        WorkloadMonth month = new WorkloadMonth(year, 6);
+        WorkloadYear year = new WorkloadYear(2024);
+        WorkloadMonth month = new WorkloadMonth(6);
         month.setTrainingSummaryDuration(20);
         year.getMonths().add(month);
         existing.getYears().add(year);
 
-        when(trainerWorkloadRepository.findByUsernameWithYearsAndMonths("Jane.Smith"))
+        when(trainerWorkloadRepository.findByUsername("Jane.Smith"))
                 .thenReturn(Optional.of(existing));
         when(trainerWorkloadRepository.save(any(TrainerWorkload.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
@@ -143,13 +143,13 @@ class TrainerWorkloadServiceImplTest {
     @Test
     void applyWorkloadEvent_whenDifferentMonthSameYear_createsSeparateMonthEntry() {
         TrainerWorkload existing = new TrainerWorkload("Jane.Smith", "Jane", "Smith", true);
-        WorkloadYear year = new WorkloadYear(existing, 2024);
-        WorkloadMonth june = new WorkloadMonth(year, 6);
+        WorkloadYear year = new WorkloadYear(2024);
+        WorkloadMonth june = new WorkloadMonth(6);
         june.setTrainingSummaryDuration(60);
         year.getMonths().add(june);
         existing.getYears().add(year);
 
-        when(trainerWorkloadRepository.findByUsernameWithYearsAndMonths("Jane.Smith"))
+        when(trainerWorkloadRepository.findByUsername("Jane.Smith"))
                 .thenReturn(Optional.of(existing));
         when(trainerWorkloadRepository.save(any(TrainerWorkload.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
@@ -168,7 +168,7 @@ class TrainerWorkloadServiceImplTest {
     void applyWorkloadEvent_updatesTrainerNameAndActiveStatusEachTime() {
         TrainerWorkload existing = new TrainerWorkload("Jane.Smith", "Old", "Name", false);
 
-        when(trainerWorkloadRepository.findByUsernameWithYearsAndMonths("Jane.Smith"))
+        when(trainerWorkloadRepository.findByUsername("Jane.Smith"))
                 .thenReturn(Optional.of(existing));
         when(trainerWorkloadRepository.save(any(TrainerWorkload.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
@@ -193,7 +193,7 @@ class TrainerWorkloadServiceImplTest {
                 "Jane.Smith", "Jane", "Smith", true,
                 List.of(new YearSummaryResponse(2024, List.of(new MonthSummaryResponse(6, 60)))));
 
-        when(trainerWorkloadRepository.findByUsernameWithYearsAndMonths("Jane.Smith"))
+        when(trainerWorkloadRepository.findByUsername("Jane.Smith"))
                 .thenReturn(Optional.of(trainerWorkload));
         when(trainerWorkloadMapper.toSummaryResponse(trainerWorkload)).thenReturn(stub);
 
@@ -204,7 +204,7 @@ class TrainerWorkloadServiceImplTest {
 
     @Test
     void getSummary_whenTrainerNotFound_throws() {
-        when(trainerWorkloadRepository.findByUsernameWithYearsAndMonths("Ghost"))
+        when(trainerWorkloadRepository.findByUsername("Ghost"))
                 .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> trainerWorkloadService.getSummary("Ghost"))
@@ -217,13 +217,13 @@ class TrainerWorkloadServiceImplTest {
     @Test
     void getMonthlyDuration_whenMonthExists_returnsDuration() {
         TrainerWorkload trainerWorkload = new TrainerWorkload("Jane.Smith", "Jane", "Smith", true);
-        WorkloadYear year = new WorkloadYear(trainerWorkload, 2024);
-        WorkloadMonth month = new WorkloadMonth(year, 6);
+        WorkloadYear year = new WorkloadYear(2024);
+        WorkloadMonth month = new WorkloadMonth(6);
         month.setTrainingSummaryDuration(90);
         year.getMonths().add(month);
         trainerWorkload.getYears().add(year);
 
-        when(trainerWorkloadRepository.findByUsernameWithYearsAndMonths("Jane.Smith"))
+        when(trainerWorkloadRepository.findByUsername("Jane.Smith"))
                 .thenReturn(Optional.of(trainerWorkload));
 
         MonthlyWorkloadResponse result = trainerWorkloadService.getMonthlyDuration("Jane.Smith", 2024, 6);
@@ -235,7 +235,7 @@ class TrainerWorkloadServiceImplTest {
     void getMonthlyDuration_whenMonthHasNoRecordedTraining_returnsZero() {
         TrainerWorkload trainerWorkload = new TrainerWorkload("Jane.Smith", "Jane", "Smith", true);
 
-        when(trainerWorkloadRepository.findByUsernameWithYearsAndMonths("Jane.Smith"))
+        when(trainerWorkloadRepository.findByUsername("Jane.Smith"))
                 .thenReturn(Optional.of(trainerWorkload));
 
         MonthlyWorkloadResponse result = trainerWorkloadService.getMonthlyDuration("Jane.Smith", 2024, 6);
@@ -245,7 +245,7 @@ class TrainerWorkloadServiceImplTest {
 
     @Test
     void getMonthlyDuration_whenTrainerNotFound_throws() {
-        when(trainerWorkloadRepository.findByUsernameWithYearsAndMonths("Ghost"))
+        when(trainerWorkloadRepository.findByUsername("Ghost"))
                 .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> trainerWorkloadService.getMonthlyDuration("Ghost", 2024, 6))
