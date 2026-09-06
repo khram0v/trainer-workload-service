@@ -1,7 +1,5 @@
 package io.github.khram0v.trainerworkload.controller;
 
-import io.github.khram0v.trainerworkload.dto.request.ActionType;
-import io.github.khram0v.trainerworkload.dto.request.WorkloadEventRequest;
 import io.github.khram0v.trainerworkload.dto.response.MonthSummaryResponse;
 import io.github.khram0v.trainerworkload.dto.response.MonthlyWorkloadResponse;
 import io.github.khram0v.trainerworkload.dto.response.TrainerWorkloadSummaryResponse;
@@ -13,22 +11,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
-import java.time.LocalDate;
-import java.time.Month;
 import java.util.List;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -38,54 +28,8 @@ class TrainerWorkloadControllerTest {
 
     @Autowired private MockMvc mockMvc;
 
-    private final ObjectMapper objectMapper = JsonMapper.builder().build();
-
     @MockitoBean private TrainerWorkloadService trainerWorkloadService;
     @MockitoBean private ServiceAuthenticationFilter serviceAuthenticationFilter;
-
-    // ~~~~~ applyWorkload ~~~~~
-
-    @Test
-    void applyWorkload_returns200_andUnpacksRequest() throws Exception {
-        var request = new WorkloadEventRequest(
-                "Jane.Smith", "Jane", "Smith", true,
-                LocalDate.of(2024, Month.JUNE, 10), 60, ActionType.ADD);
-
-        mockMvc.perform(post("/api/v1/trainer-workloads")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk());
-
-        verify(trainerWorkloadService).applyWorkloadEvent(request);
-    }
-
-    @Test
-    void applyWorkload_whenBlankUsername_returns400_andDoesNotCallService() throws Exception {
-        var request = new WorkloadEventRequest(
-                "", "Jane", "Smith", true,
-                LocalDate.of(2024, Month.JUNE, 10), 60, ActionType.ADD);
-
-        mockMvc.perform(post("/api/v1/trainer-workloads")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
-
-        verify(trainerWorkloadService, never()).applyWorkloadEvent(any());
-    }
-
-    @Test
-    void applyWorkload_whenNonPositiveDuration_returns400() throws Exception {
-        var request = new WorkloadEventRequest(
-                "Jane.Smith", "Jane", "Smith", true,
-                LocalDate.of(2024, Month.JUNE, 10), 0, ActionType.ADD);
-
-        mockMvc.perform(post("/api/v1/trainer-workloads")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
-
-        verify(trainerWorkloadService, never()).applyWorkloadEvent(any());
-    }
 
     // ~~~~~ getSummary ~~~~~
 

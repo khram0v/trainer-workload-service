@@ -1,16 +1,16 @@
 # Trainer Workload Service
 
-Tracks each trainer's monthly training workload for the Gym CRM ecosystem. The main `gym-crm`service notifies this
-service whenever a training session is added or canceled; this service maintains a running monthly summary per trainer
-and exposes it for querying.
+Tracks each trainer's monthly training workload for the Gym CRM ecosystem. The main `gym-crm` service publishes an event
+whenever a training session is added or canceled; this service consumes those events asynchronously via ActiveMQ,
+maintains a running monthly summary per trainer, and exposes it for querying over REST.
 
 ## Tech Stack
 
 - Java 25 / Spring Boot 4
 - Spring Data JPA + PostgreSQL
 - Liquibase
-- Eureka client + Bearer-token auth
-- Spring Cloud Netflix Eureka Client (service discovery)
+- Spring JMS + ActiveMQ (async event consumption from gym-crm)
+- Bearer-token auth for the query endpoints
 
 ## Data model
 
@@ -20,15 +20,15 @@ TrainerWorkload (username, firstName, lastName, active)
 └── WorkloadMonth (month, trainingSummaryDuration)
 ```
 
-## API
+## Messaging
 
-| Method | Path                                                               | Description                                                  |
-|--------|--------------------------------------------------------------------|--------------------------------------------------------------|
-| POST   | `/api/v1/trainer-workloads`                                        | Apply a workload event (ADD/DELETE) for a trainer's training |
-| GET    | `/api/v1/trainer-workloads/{username}`                             | Get a trainer's full workload summary (all years/months)     |
-| GET    | `/api/v1/trainer-workloads/{username}/years/{year}/months/{month}` | Get a trainer's training total for one specific month        |
+| Queue                         | Direction | Purpose                                                 |
+|-------------------------------|-----------|---------------------------------------------------------|
+| `trainer-workload.events`     | consumes  | Workload events (ADD/DELETE) published by gym-crm       |
+| `trainer-workload.events.dlq` | produces  | Events rejected as malformed or missing required fields |
 
-### `POST /api/v1/trainer-workloads` request body
+`TrainerWorkloadEventListener` consumes `trainer-workload.events`. Each message is a JSON body matching
+`WorkloadEventRequest`:
 
 ```json
 {
@@ -45,23 +45,45 @@ TrainerWorkload (username, firstName, lastName, active)
 `actionType` is `ADD` when a training session is scheduled, `DELETE` when it is canceled. The monthly total is adjusted
 accordingly and never drops below zero. Trainer name/active status are refreshed on every event.
 
+Before applying an event, the listener validates it against the constraints above (`@NotBlank`/`@NotNull`/`@Positive` on
+`WorkloadEventRequest`) plus basic JSON well-formedness. Messages that fail either check - and are therefore missing
+required information - are wrapped (raw payload + rejection reasons + timestamp) and published to
+`trainer-workload.events.dlq` instead of being applied or endlessly redelivered.
+`DeadLetterEventListener` consumes that queue and logs rejected events at `ERROR`, as a hook for future
+alerting/persistence.
+
+If gym-crm forwards a `transactionId` JMS property on the original event, the listener puts it into the logging MDC for
+the duration of processing, so log lines for a given training operation can be correlated across both services.
+
+## API
+
+| Method | Path                                                               | Description                                              |
+|--------|--------------------------------------------------------------------|----------------------------------------------------------|
+| GET    | `/api/v1/trainer-workloads/{username}`                             | Get a trainer's full workload summary (all years/months) |
+| GET    | `/api/v1/trainer-workloads/{username}/years/{year}/months/{month}` | Get a trainer's training total for one specific month    |
+
+Workload updates no longer happen over REST - see **Messaging** above. Both GET endpoints are still protected the same
+way as before (see **Security**); note that gym-crm no longer calls them directly, so today they're intended for other
+consumers (e.g. an admin/reporting tool) presenting their own valid service token.
+
 ## Security
 
 All endpoints (except `/actuator/health/**`) require a `Authorization: Bearer <token>` header carrying a JWT signed with
 the shared secret configured via `SERVICE_JWT_SECRET`, containing a `type=service` claim. This service never issues
-tokens itself — it only validates ones issued by trusted callers (e.g. `gym-crm`). Requests without a valid service
-token get `401 Unauthorized`.
+tokens itself - it only validates ones issued by trusted callers.
 
 ## Observability
 
-Requests are traced using a shared `transactionId`:
+Requests and events are traced using a shared `transactionId`:
 
-* **Request logging:** `RequestLoggingInterceptor` logs request start/completion.
+* **Request logging:** `RequestLoggingInterceptor` logs request start/completion (REST endpoints only).
 * **Operation logging:** `applyWorkloadEvent` logs changes at `INFO`; read operations log at `DEBUG`.
-* **Transaction ID:** `TransactionIdFilter` reuses the inbound `X-Transaction-Id` or generates a new one, then includes
-  it in the response and error responses.
-* **Cross-service tracing:** propagated IDs allow training operations in `gym-crm` and workload sync calls to be
-  correlated.
+* **Transaction ID (REST):** `TransactionIdFilter` reuses the inbound `X-Transaction-Id` or generates a new one, then
+  includes it in the response and error responses.
+* **Transaction ID (messaging):** `TrainerWorkloadEventListener` reads the `transactionId` JMS property (if present)
+  from the incoming event and puts it into the MDC for the duration of processing.
+* **Dead letters:** rejected events are logged at `ERROR` by `DeadLetterEventListener`, with the raw payload and
+  rejection reasons.
 
 ## Getting Started
 
@@ -69,7 +91,8 @@ Requests are traced using a shared `transactionId`:
 ./gradlew bootRun
 ```
 
-Requires PostgreSQL — `docker compose up -d` (via `compose.yaml`) starts one on port `5433`.
+Requires PostgreSQL and ActiveMQ - `docker compose up -d` (via `compose.yaml`) starts Postgres on port `5433` and
+ActiveMQ on `61616` (web console on `8161`).
 
 ## Testing
 
