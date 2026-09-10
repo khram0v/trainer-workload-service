@@ -1,17 +1,15 @@
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: trainer-workload-postgres
+  mongodb:
+    image: mongo:7
+    container_name: trainer-workload-mongodb
     environment:
-      POSTGRES_DB: trainer_workload
-      POSTGRES_USER: workload_user
-      POSTGRES_PASSWORD: workload_password
+      MONGO_INITDB_DATABASE: trainer-workload
     ports:
-      - '5433:5432'
+      - '27017:27017'
     volumes:
-      - trainer_workload_data:/var/lib/postgresql/data
+      - trainer_workload_mongo_data:/data/db
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U workload_user -d trainer_workload"]
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -30,4 +28,4 @@ services:
       start_period: 30s
 
 volumes:
-  trainer_workload_data:
+  trainer_workload_mongo_data:

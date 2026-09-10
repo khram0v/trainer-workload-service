@@ -1,41 +1,26 @@
 package io.github.khram0v.trainerworkload.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.PositiveOrZero;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Entity
-@Table(name = "workload_months")
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class WorkloadMonth {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @ManyToOne
-    @JoinColumn(name = "workload_year_id", nullable = false)
-    private WorkloadYear workloadYear;
-
-    @Column(nullable = false)
+    @Min(1)
+    @Max(12)
     private int month;
 
-    @Column(name = "training_summary_duration", nullable = false)
+    @PositiveOrZero
     private int trainingSummaryDuration;
 
-    public WorkloadMonth(WorkloadYear workloadYear, int month) {
-        this.workloadYear = workloadYear;
+    public WorkloadMonth(int month) {
         this.month = month;
         this.trainingSummaryDuration = 0;
     }
