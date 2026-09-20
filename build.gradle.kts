@@ -21,6 +21,7 @@ repositories {
 
 val jjwtVersion = "0.13.0"
 val cucumberVersion = "7.34.8"
+val awaitilityVersion = "4.3.0"
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb")
@@ -29,14 +30,14 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-activemq")
-    implementation("io.jsonwebtoken:jjwt-api:${jjwtVersion}")
+    implementation("io.jsonwebtoken:jjwt-api:$jjwtVersion")
 
     compileOnly("org.projectlombok:lombok")
 
     developmentOnly("org.springframework.boot:spring-boot-docker-compose")
 
-    runtimeOnly("io.jsonwebtoken:jjwt-impl:${jjwtVersion}")
-    runtimeOnly("io.jsonwebtoken:jjwt-jackson:${jjwtVersion}")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:$jjwtVersion")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:$jjwtVersion")
 
     annotationProcessor("org.projectlombok:lombok")
 
@@ -52,6 +53,7 @@ dependencies {
     testImplementation("org.testcontainers:testcontainers-junit-jupiter")
     testImplementation("org.testcontainers:testcontainers-mongodb")
     testImplementation("org.junit.platform:junit-platform-suite")
+    testImplementation("org.awaitility:awaitility:$awaitilityVersion")
 
     testCompileOnly("org.projectlombok:lombok")
 
